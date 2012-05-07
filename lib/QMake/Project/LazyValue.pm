@@ -13,7 +13,7 @@ use overload
     q{<=>} => \&_num_cmp,
 ;
 
-sub new
+sub _new
 {
     my ($class, %args) = @_;
 

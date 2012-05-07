@@ -651,7 +651,7 @@ sub _lazy_value
 {
     my ($self, %args) = @_;
 
-    my $lazy = QMake::Project::LazyValue->new( %args );
+    my $lazy = QMake::Project::LazyValue->_new( %args );
 
     # FIXME: some way of also delaying on `wantarray' would be nice, but it
     # currently doesn't seem feasible.  Note that returning a tied array
