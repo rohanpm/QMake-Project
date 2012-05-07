@@ -15,6 +15,7 @@ use QMake::Project;
 
 use English qw(-no_match_vars);
 use File::Spec::Functions;
+use File::Which;
 use File::chdir;
 use Readonly;
 use Test::Exception;
@@ -22,7 +23,6 @@ use Test::More;
 use Test::Warn;
 
 Readonly my $TESTDATA => catfile( $FindBin::Bin, 'test_projects' );
-Readonly my $QT_VERSION => 5;
 Readonly my $QMAKE => find_qmake( );
 Readonly my $ERROR_RE => qr/^QMake::Project:/;
 
@@ -342,13 +342,8 @@ sub test_make_error
 
 sub run_test
 {
-    unless (ok( $QMAKE, 'found qmake' )) {
-        diag(
-            'This test requires a working qmake from Qt >= 5.0. This may come either from a '
-           .'qtbase directory at the same level as the qtqa directory, or from PATH.  I could '
-           .'not find either of these.'
-        );
-        return;
+    unless ($QMAKE) {
+        plan skip_all => 'No qmake found in PATH'; 
     }
 
     test_typical;
@@ -376,25 +371,12 @@ sub run_test
 
 sub find_qmake
 {
-    # Try to find the "right" qmake - not particularly easy.
-    my $repo_base = catfile( $FindBin::Bin, qw(.. .. .. .. .. ..) );
-    my $qmake = canonpath catfile( $repo_base, qw(.. qtbase bin qmake) );
-    if ($OSNAME =~ m{win32}i) {
-        $qmake .= '.exe';
+    my @qmakes = qw(qmake-qt5 qmake-qt4 qmake);
+    foreach my $qmake (@qmakes) {
+        if (my $found = which( $qmake )) {
+            return $found;
+        }
     }
-
-    if (-f $qmake) {
-        diag "Using qmake from sibling qtbase: $qmake";
-        return $qmake;
-    }
-
-    # OK, then just try to use qmake from PATH
-    my $output = qx(qmake -v 2>&1);
-    if ($? == 0 && $output =~ m{Using Qt version $QT_VERSION}) {
-        diag "Using qmake from PATH";
-        return 'qmake';
-    }
-
     return;
 }
 
