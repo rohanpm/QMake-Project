@@ -4,14 +4,14 @@ use warnings;
 
 =head1 NAME
 
-01-QtQA-QMake-Project.t - test for QtQA::QMake::Project
+01-QMake-Project.t - test for QMake::Project
 
 =cut
 
 use FindBin;
 use lib "$FindBin::Bin/../../..";
 
-use QtQA::QMake::Project;
+use QMake::Project;
 
 use English qw(-no_match_vars);
 use File::Spec::Functions;
@@ -24,7 +24,7 @@ use Test::Warn;
 Readonly my $TESTDATA => catfile( $FindBin::Bin, 'test_projects' );
 Readonly my $QT_VERSION => 5;
 Readonly my $QMAKE => find_qmake( );
-Readonly my $ERROR_RE => qr/^QtQA::QMake::Project:/;
+Readonly my $ERROR_RE => qr/^QMake::Project:/;
 
 sub run_qmake
 {
@@ -50,7 +50,7 @@ sub test_typical
     if ($proj) {
         $proj->set_makefile( 'Makefile' );
     } else {
-        $proj = QtQA::QMake::Project->new( 'Makefile' );
+        $proj = QMake::Project->new( 'Makefile' );
     }
 
     my $initial_count = $proj->{ _qmake_count };
@@ -81,7 +81,7 @@ sub test_default_target
     if ($proj) {
         $proj->set_makefile( 'Makefile' );
     } else {
-        $proj = QtQA::QMake::Project->new( 'Makefile' );
+        $proj = QMake::Project->new( 'Makefile' );
     }
 
     my $initial_count = $proj->{ _qmake_count };
@@ -106,7 +106,7 @@ sub test_list
     if ($proj) {
         $proj->set_makefile( "$dir/Makefile" );
     } else {
-        $proj = QtQA::QMake::Project->new( "$dir/Makefile" );
+        $proj = QMake::Project->new( "$dir/Makefile" );
     }
 
     # Order of QT is undefined
@@ -133,7 +133,7 @@ sub test_delayed
     if ($proj) {
         $proj->set_makefile( 'Makefile' );
     } else {
-        $proj = QtQA::QMake::Project->new( 'Makefile' );
+        $proj = QMake::Project->new( 'Makefile' );
     }
 
     my $initial_count = $proj->{ _qmake_count };
@@ -174,7 +174,7 @@ sub test_ordering
     if ($proj) {
         $proj->set_makefile( 'Makefile' );
     } else {
-        $proj = QtQA::QMake::Project->new( 'Makefile' );
+        $proj = QMake::Project->new( 'Makefile' );
     }
 
     my @DEFINES = $proj->values( 'DEFINES' );
@@ -182,7 +182,7 @@ sub test_ordering
     # If we correctly evaluate after default_post.prf and all CONFIG are
     # processed, then our setting of QT_NAMESPACE in our .pro file has
     # been transformed into a DEFINE.  Otherwise, it hasn't.
-    is( grep( { $_ =~ qr/QT_NAMESPACE=QtQA_QMake_Project/ } @DEFINES ), 1 )
+    is( grep( { $_ =~ qr/QT_NAMESPACE=QMake_Project/ } @DEFINES ), 1 )
         || diag "DEFINES: @DEFINES";
 
     return;
@@ -204,7 +204,7 @@ sub test_error
     if ($proj) {
         $proj->set_makefile( 'Makefile' );
     } else {
-        $proj = QtQA::QMake::Project->new( 'Makefile' );
+        $proj = QMake::Project->new( 'Makefile' );
     }
 
     my $uses_gui = $proj->test( 'contains(QT,gui)' );
@@ -240,7 +240,7 @@ sub test_spaces
     if ($proj) {
         $proj->set_makefile( "$dir/Makefile" );
     } else {
-        $proj = QtQA::QMake::Project->new( "$dir/Makefile" );
+        $proj = QMake::Project->new( "$dir/Makefile" );
     }
 
     my $initial_count = $proj->{ _qmake_count };
@@ -269,7 +269,7 @@ sub test_make_error
     if ($proj) {
         $proj->set_makefile( undef );
     } else {
-        $proj = QtQA::QMake::Project->new( );
+        $proj = QMake::Project->new( );
     }
 
     my $sub = sub{ my @qt = $proj->values( 'QT' ) };
@@ -361,7 +361,7 @@ sub run_test
     test_make_error;
 
     # Now do them all again using a single object
-    my $proj = QtQA::QMake::Project->new( );
+    my $proj = QMake::Project->new( );
     test_typical( $proj );
     test_default_target( $proj );
     test_list( $proj );
