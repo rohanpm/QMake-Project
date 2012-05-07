@@ -487,7 +487,7 @@ sub _write_modified_pro_prf
     my $to_resolve = $args{ to_resolve };
     my $pkg = __PACKAGE__;
 
-    my $prf_basename = '_qtqa_qmake_project_magic';
+    my $prf_basename = '_perl_qmake_project_magic';
     my $prf_name = "$output_qmakefeatures/$prf_basename.prf";
 
     my $input_fh = IO::File->new( $input_filename, '<' )
