@@ -905,6 +905,10 @@ by C<test> and C<values>.
 
 =back
 
+=head1 COMPATIBILITY
+
+This module should work with qmake from Qt 3, Qt 4 and Qt 5.
+
 =head1 CAVEATS
 
 jom <= 1.0.11 should not be used as the make command with this module,
