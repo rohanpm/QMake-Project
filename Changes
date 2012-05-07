@@ -1,5 +1,6 @@
 Revision history for QMake-Project
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.80    7 May 2012
+        First version.
+        Ported from git://gitorious.org/qt/qtqa b8fd6b71e5049617411f11cb7990a201e696bcd9
 
