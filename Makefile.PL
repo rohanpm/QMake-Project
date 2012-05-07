@@ -22,6 +22,7 @@ WriteMakefile(
         'List::MoreUtils' => 0,
         'Readonly' => 0,
         'ReleaseAction' => 0,
+        'Scalar::Defer' => 0,
         'Test::Exception' => 0,
         'Test::More' => 0,
         'Test::Warn' => 0,

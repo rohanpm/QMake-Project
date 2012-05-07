@@ -6,17 +6,16 @@ our $VERSION = '0.80';
 
 use Carp;
 use English qw(-no_match_vars);
-use File::chdir;
 use File::Basename;
 use File::Temp;
+use File::chdir;
 use Getopt::Long qw(GetOptions);
 use IO::File;
+use List::MoreUtils qw(apply);
 use Readonly;
 use ReleaseAction qw(on_release);
-use List::MoreUtils qw(apply);
+use Scalar::Defer qw(lazy);
 use Text::ParseWords;
-
-use QMake::Project::LazyValue;
 
 Readonly my $WINDOWS => ($OSNAME =~ m{win32}i);
 
@@ -651,13 +650,27 @@ sub _lazy_value
 {
     my ($self, %args) = @_;
 
-    my $lazy = QMake::Project::LazyValue->_new( %args );
+    my $get = sub {
+        $self->_resolve( );
+        my $resolved = $self->{ _resolved }{ $args{ type } }{ $args{ key } };
+        if (defined($resolved) && ref($resolved) eq 'ARRAY') {
+            return wantarray ? @{ $resolved } : $resolved->[0];
+        }
 
-    # FIXME: some way of also delaying on `wantarray' would be nice, but it
-    # currently doesn't seem feasible.  Note that returning a tied array
-    # doesn't work as expected (the entire tied array is expanded out into
-    # the caller when the function returns).
-    return wantarray ? $lazy->_resolved( ) : $lazy;
+        # If there was an error, and we wantarray, make sure we return ()
+        # rather than (undef)
+        if (wantarray && !defined($resolved)) {
+            return ();
+        }
+
+        return $resolved;
+    };
+
+    if (wantarray) {
+        return $get->( );
+    }
+
+    return lazy { $get->( ) };
 }
 
 1;
