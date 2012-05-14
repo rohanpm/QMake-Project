@@ -274,6 +274,9 @@ sub _parse_qmake_command
                 nodepend
                 nomoc
                 nopwd
+                macx
+                unix
+                win32
             )),
             map( { $_ => $sub_accept_option_with_value } qw(
                 unset=s

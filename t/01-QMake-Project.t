@@ -195,7 +195,11 @@ sub test_error
     my $dir = "$TESTDATA/04-error";
     local $CWD = $dir;
 
-    run_qmake( );
+    my $qmake_args = q{};
+    if ($OSNAME =~ m{linux}i) {
+        $qmake_args = '-unix';
+    }
+    run_qmake( $qmake_args );
 
     # qmake worked the first time, but this environment
     # variable will force an error when we try to parse it.
