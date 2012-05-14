@@ -1,5 +1,8 @@
 Revision history for QMake-Project
 
+0.81    13 May 2012
+        Fixed "the meaning of -unix is unknown" warnings.
+
 0.80    7 May 2012
         First version.
         Ported from git://gitorious.org/qt/qtqa b8fd6b71e5049617411f11cb7990a201e696bcd9
