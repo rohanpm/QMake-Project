@@ -1,5 +1,8 @@
 Revision history for QMake-Project
 
+0.82    16 May 2012
+        Depend on perl 5.8.
+
 0.81    13 May 2012
         Fixed "the meaning of -unix is unknown" warnings.
 

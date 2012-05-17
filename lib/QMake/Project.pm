@@ -2,7 +2,7 @@ package QMake::Project;
 use strict;
 use warnings;
 
-our $VERSION = '0.81';
+our $VERSION = '0.82';
 
 use Carp;
 use English qw(-no_match_vars);
