@@ -1,12 +1,22 @@
 Revision history for QMake-Project
 
-0.82    16 May 2012
-        Depend on perl 5.8.
+0.83    2012-08-05
 
-0.81    13 May 2012
-        Fixed "the meaning of -unix is unknown" warnings.
+  - New API, set_project_file(); makes it possible to directly
+    access .pro file without a qmake-generated Makefile
+  - Minor documentation cleanup
+  - Sign using Module::Signature
+  - Make Changes file abide by CPAN::Changes::Spec
 
-0.80    7 May 2012
-        First version.
-        Ported from git://gitorious.org/qt/qtqa b8fd6b71e5049617411f11cb7990a201e696bcd9
+0.82    2012-05-16
 
+  - Depend on perl 5.8.
+
+0.81    2012-05-13
+
+  - Fixed "the meaning of -unix is unknown" warnings.
+
+0.80    2012-05-07
+
+  - First version.
+    Ported from git://gitorious.org/qt/qtqa b8fd6b71e5049617411f11cb7990a201e696bcd9
