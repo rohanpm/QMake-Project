@@ -45,19 +45,30 @@ sub test_typical
     my $dir = "$TESTDATA/01-typical";
     local $CWD = $dir;
 
-    run_qmake( );
+    my $check = sub {
+        my $initial_count = $proj->{ _qmake_count };
+        is( $proj->values( 'TARGET' ), 'myapp' );
+        is( $proj->values( 'SOURCES' ), 'main.cpp' );
+        is( canonpath($proj->values( 'PWD' )), canonpath($dir) );
+        is( $proj->{ _qmake_count } - $initial_count, 3 );
+    };
+
+    # first try with directory, then .pro file, then makefile
 
     if ($proj) {
-        $proj->set_makefile( 'Makefile' );
+        $proj->set_project_file( '.' );
     } else {
-        $proj = QMake::Project->new( 'Makefile' );
+        $proj = QMake::Project->new( '.' );
     }
+    $check->();
 
-    my $initial_count = $proj->{ _qmake_count };
-    is( $proj->values( 'TARGET' ), 'myapp' );
-    is( $proj->values( 'SOURCES' ), 'main.cpp' );
-    is( canonpath($proj->values( 'PWD' )), canonpath($dir) );
-    is( $proj->{ _qmake_count } - $initial_count, 3 );
+    $proj->set_project_file( '01-typical.pro' );
+    $check->();
+
+    run_qmake( );
+
+    $proj->set_makefile( 'Makefile' );
+    $check->();
 
     return;
 }
@@ -188,6 +199,30 @@ sub test_ordering
     return;
 }
 
+sub test_directory_resolution
+{
+    my ($proj) = @_;
+
+    if (!$proj) {
+        $proj = QMake::Project->new( );
+    }
+
+    $proj->set_project_file( "$TESTDATA/07-no-project-file" );
+    my $loaded = $proj->values( 'loaded' );
+    throws_ok( sub { $loaded = "$loaded" }, qr{could not resolve project file} );
+
+    $proj->set_project_file( "$TESTDATA/08-different-named-project-file" );
+    $loaded = $proj->values( 'loaded' );
+    is( $loaded, 1 );
+
+    $proj->set_project_file( "$TESTDATA/09-multiple-project-files" );
+    $loaded = $proj->values( 'loaded' );
+    is( $loaded, 2 );
+
+    return;
+
+}
+
 # Test what happens when an error occurs somewhere
 sub test_error
 {
@@ -282,7 +317,7 @@ sub test_make_error
     # fail: no makefile set
     throws_ok(
         sub { $sub->() },   # weird syntax is necessary to satisfy prototype
-        qr{$ERROR_RE no makefile set}
+        qr{$ERROR_RE no makefile or project file set}
     );
 
     # fail: invalid makefile directory
@@ -315,7 +350,7 @@ sub test_make_error
     $proj->set_makefile( undef );
     warning_like(
         sub { $sub->() },
-        qr{$ERROR_RE no makefile set}
+        qr{$ERROR_RE no makefile or project file set}
     );
 
     # warn: invalid makefile directory
@@ -356,6 +391,7 @@ sub run_test
     test_delayed;
     test_spaces;
     test_ordering;
+    test_directory_resolution;
     test_error;
     test_make_error;
 

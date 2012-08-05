@@ -7,7 +7,9 @@ our $VERSION = '0.83';
 use Carp;
 use English qw(-no_match_vars);
 use File::Basename;
+use File::Spec::Functions qw(:ALL);
 use File::Temp;
+use File::Which;
 use File::chdir;
 use Getopt::Long qw(GetOptions);
 use IO::File;
@@ -24,15 +26,19 @@ Readonly my $MAGIC_QMAKE_EXIT_STRING => __PACKAGE__.':EXITING';
 
 sub new
 {
-    my ($class, $makefile) = @_;
+    my ($class, $file) = @_;
 
     my $self = bless {
         _die_on_error => 1, # whether to die when an error occurs
         _qmake_count => 0,  # number of times qmake has been run (for testing)
     }, $class;
 
-    if ($makefile) {
-        $self->set_makefile( $makefile );
+    if ($file) {
+        if (-d $file || $file =~ m{\.pr.$}i) {
+            $self->set_project_file( $file );
+        } else {
+            $self->set_makefile( $file );
+        }
     }
 
     $self->set_make( $self->_default_make( ) );
@@ -45,8 +51,7 @@ sub set_makefile
     my ($self, $makefile) = @_;
 
     $self->{ _makefile } = $makefile;
-
-    # Makefile changed, so everything needs to be resolved again.
+    delete $self->{ _project_file };
     $self->{ _resolved } = {};
 
     return;
@@ -56,6 +61,23 @@ sub makefile
 {
     my ($self) = @_;
     return $self->{ _makefile };
+}
+
+sub set_project_file
+{
+    my ($self, $file) = @_;
+
+    $self->{ _project_file } = $file;
+    delete $self->{ _makefile };
+    $self->{ _resolved } = {};
+
+    return;
+}
+
+sub project_file
+{
+    my ($self) = @_;
+    return $self->{ _project_file };
 }
 
 sub set_make
@@ -72,6 +94,21 @@ sub make
     my ($self) = @_;
 
     return $self->{ _make };
+}
+
+sub _qmake
+{
+    my ($self) = @_;
+    if (!$self->{ _qmake }) {
+        my @qmakes = qw(qmake-qt5 qmake-qt4 qmake);
+        foreach my $qmake (@qmakes) {
+            if (my $found = which( $qmake )) {
+                $self->{ _qmake } = $found;
+                last;
+            }
+        }
+    }
+    return $self->{ _qmake };
 }
 
 # Returns a reasonable default make command based on the platform.
@@ -355,18 +392,12 @@ sub _resolve
     return;
 }
 
-sub _resolve_impl
+sub _resolve_files_from_makefile
 {
-    my ($self) = @_;
+    my ($self, $makefile) = @_;
 
-    my $makefile = $self->makefile( ) || croak __PACKAGE__.': no makefile set';
     local $CWD = dirname( $makefile );
     $makefile = basename( $makefile );
-
-    my $to_resolve = delete $self->{ _to_resolve };
-    if (!$to_resolve) {
-        return $self->{ _resolved };
-    }
 
     my $original_qmake_command = $self->_discover_qmake_command( makefile => $makefile );
     my $parsed_qmake_command = $self->_parse_qmake_command( $original_qmake_command );
@@ -385,7 +416,70 @@ sub _resolve_impl
     if (@projectfiles > 1) {
         $croak_command_error->( 'this is an unusual, unsupported qmake command' );
     }
-    my ($projectfile) = @projectfiles;
+
+    my $projectfile = $projectfiles[0];
+    if (!file_name_is_absolute( $projectfile )) {
+        $projectfile = rel2abs( $projectfile, dirname( $parsed_makefile ) );
+    }
+
+    return (
+        $parsed_qmake_command->{ qmake },
+        $parsed_qmake_command->{ args },
+        $projectfile,
+        $parsed_makefile
+    );
+}
+
+sub _resolve_files
+{
+    my ($self) = @_;
+
+    if (my $makefile = $self->makefile( )) {
+        return $self->_resolve_files_from_makefile( $makefile );
+    }
+
+    my $project_file = $self->project_file( )
+        || croak __PACKAGE__.': no makefile or project file set';
+
+    if (-f $project_file) {
+        return ($self->_qmake(), undef, $project_file, catfile( dirname( $project_file ), 'Makefile' ));
+    }
+
+    if (-d $project_file) {
+        my $qmake = $self->_qmake();
+        my $makefile = catfile( $project_file, 'Makefile' );
+        my @candidates = glob( catfile( $project_file, '*.pro' ) );
+        if (@candidates == 1) {
+            return ($qmake, undef, $candidates[0], $makefile);
+        }
+
+        my $project_basename = basename( $project_file );
+        @candidates = grep { lc(basename($_, '.pro')) eq lc($project_basename) } @candidates;
+        if (@candidates == 1) {
+            return ($qmake, undef, $candidates[0], $makefile);
+        }
+
+        @candidates = grep { basename($_, '.pro') eq $project_basename } @candidates;
+        if (@candidates == 1) {
+            return ($qmake, undef, $candidates[0], $makefile);
+        }
+
+        croak __PACKAGE__.": could not resolve project file in directory $project_file";
+    }
+
+    croak __PACKAGE__.": $project_file is not an existing directory or file";
+}
+
+sub _resolve_impl
+{
+    my ($self) = @_;
+
+    my $to_resolve = delete $self->{ _to_resolve };
+    if (!$to_resolve) {
+        return $self->{ _resolved };
+    }
+
+    my ($qmake, $qmake_args, $projectfile, $makefile) = $self->_resolve_files();
 
     # We're ready to run our qmake.
     #
@@ -400,7 +494,7 @@ sub _resolve_impl
 
     my $temp_makefile = File::Temp->new(
         TEMPLATE => "${pkg_safe}_Makefile.XXXXXX",
-        DIR => dirname( $parsed_makefile ),
+        DIR => dirname( $makefile ),
         UNLINK => 1,
     );
     # qmake may silently create various other makefiles behind our back (e.g. Debug, Release
@@ -445,12 +539,12 @@ sub _resolve_impl
     }
 
     my $qmake_command = $self->_shquote(
-        $parsed_qmake_command->{ qmake },
+        $qmake,
         '-o',
         $temp_makefile,
         "TARGET=$initial_target",
         $temp_projectfile,
-        @{$parsed_qmake_command->{ args }},
+        @{$qmake_args || []},
     );
     my $qmake_output = $self->_qx_or_croak( "$qmake_command 2>&1" );
 
@@ -687,11 +781,14 @@ QMake::Project - evaluate qmake project files
   use QMake::Project;
 
   # Load a project from a qmake-generated Makefile
-  my $prj = QMake::Project->new( 'Makefile' );
+  my $prj = QMake::Project->new( 'test.pro' );
 
   # Perform arbitrary tests; may be anything usable from a qmake scope
   my $testcase = $prj->test( 'testcase' );
   my $insignificant = $prj->test( 'insignificant_test' );
+
+  # May also load from a qmake-generated Makefile
+  $prj->set_makefile( 'path/to/Makefile' );
 
   # Retrieve arbitrary values (scalars or lists)
   my $target = $prj->values( 'TARGET' );
@@ -706,7 +803,7 @@ QMake::Project - evaluate qmake project files
   }
   die "Test $target failed with exit status $status";
 
-Given a qmake-generated Makefile, provides an API for accessing any
+Given a qmake project, provides an API for accessing any
 qmake variables or tests (scopes).
 
 =head1 DESCRIPTION
@@ -728,8 +825,8 @@ Values are resolved using a process like the following:
 
 =item *
 
-The given makefile is used to determine the correct qmake command,
-arguments and .pro file for this test.
+If a qmake-generated makefile is given, it is used to determine the
+correct qmake command, arguments and .pro file for this test.
 
 =item *
 
@@ -745,15 +842,6 @@ determine the values of the evaluated variables/tests.
 
 =back
 
-At a glance, it may seem odd that this package operates on Makefiles
-(qmake's output) rather than .pro files (qmake's input).  In fact, there
-is a good reason for this.
-
-Various context affects the behavior of qmake, including the directory
-containing the .pro file, the directory containing the Makefile, the
-arguments passed by the user, the presence of a .qmake.cache file, etc.
-The Makefile encapsulates all of this context.
-
 =head2 DELAYED EVALUATION
 
 Running qmake can be relatively slow (e.g. a few seconds for a cold
@@ -767,7 +855,7 @@ returning blessed values with overloaded conversions.
 
 For example, consider this code:
 
-  my $project = QMake::Project->new( 'Makefile' );
+  my $project = QMake::Project->new( 'test.pro' );
   my $target = $project->values( 'TARGET' );
   my $target_path = $project->values( 'target.path' );
 
@@ -780,7 +868,7 @@ This means that writing the code a bit differently would potentially
 have much worse performance:
 
   #### BAD EXAMPLE ####
-  my $project = QMake::Project->new( 'Makefile' );
+  my $project = QMake::Project->new( 'test.pro' );
 
   my $target = $project->values( 'TARGET' );
   say "Processing $target";                            # QMAKE EXECUTED HERE!
@@ -794,7 +882,7 @@ poorly performing code.
 As a caveat to all of the above, a list evaluation is never delayed. This is
 because the size of the list must always be known when a list is returned.
 
-  my $project = QMake::Project->new( 'Makefile' );
+  my $project = QMake::Project->new( 'test.pro' );
   my $target = $project->values( 'TARGET' );
   my @config = $project->values( 'CONFIG' ); # QMAKE EXECUTED HERE!
 
@@ -819,9 +907,25 @@ The following functions are provided:
 
 =item B<new>( MAKEFILE )
 
+=item B<new>( PROJECTFILE )
+
+=item B<new>( DIRECTORY )
+
 Returns a new B<QMake::Project> representing the qmake project for
-the given MAKEFILE.  If MAKEFILE is not provided, a makefile must be set
-via B<set_makefile> before attempting to retrieve any values from the project.
+the given MAKEFILE, PROJECTFILE or DIRECTORY.
+
+If passed a makefile, the makefile must be generated from a qmake project
+and contain a valid 'qmake' target.
+
+If passed a directory, the project file will be resolved according to the
+same rules used by qmake when invoked on a directory.
+
+If no argument is provided, one of B<set_makefile> or B<set_project_file>
+must be called before attempting to retrieve any values from the project.
+
+This function will handle a filename matching /\.pr.$/ as a project file
+and any other filename as a makefile. If this is not appropriate, call
+one of the B<set_makefile> or B<set_project_file> functions.
 
 =item B<test>( EXPRESSION )
 
@@ -877,8 +981,20 @@ never delayed, due to implementation difficulties.
 =item B<set_makefile>( MAKEFILE )
 
 Get or set the makefile referred to by this project.
+
 Note that changing the makefile invalidates any values resolved via the
-old makefile.
+old makefile, and unsets the project file.
+
+=item B<project_file>()
+
+=item B<set_project_file>( PROJECTFILE )
+
+=item B<set_project_file>( DIRECTORY )
+
+Get or set the project file (.pro file) referred to by this project.
+
+Note that changing the project file invalidates any values resolved via
+the old project file, and unsets the makefile.
 
 =item B<make>()
 

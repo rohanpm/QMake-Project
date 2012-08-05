@@ -24,3 +24,7 @@ t/test_projects/04-error/main.cpp
 't/test_projects/05 space in path/space in source.cpp'
 t/test_projects/06-ordering/06-ordering.pro
 t/test_projects/06-ordering/main.cpp
+t/test_projects/07-no-project-file/dummy
+t/test_projects/08-different-named-project-file/somefile.pro
+t/test_projects/09-multiple-project-files/09-multiple-project-files.pro
+t/test_projects/09-multiple-project-files/notloaded.pro
