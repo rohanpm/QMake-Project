@@ -4,6 +4,7 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
+    (MM->can('signature_target') ? (SIGN => 1) : ()),
     NAME                => 'QMake::Project',
     AUTHOR              => q{Rohan McGovern <rohan@mcgovern.id.au>},
     VERSION_FROM        => 'lib/QMake/Project.pm',
