@@ -680,7 +680,7 @@ sub _lazy_value
 
 =head1 NAME
 
-QMake::Project - perl interface to qmake .pro file(s)
+QMake::Project - evaluate qmake project files
 
 =head1 SYNOPSIS
 
@@ -712,24 +712,17 @@ qmake variables or tests (scopes).
 =head1 DESCRIPTION
 
 For projects using qmake, .pro files are a convenient place to include
-all sorts of metadata.  However, making that metadata robustly readable
-by tools other than qmake has been rather challenging.  Typically the data
-is only able to flow in one direction: if some tool outside of the build
-system wants to access build system metadata, then qmake or some .prf
-files must be modified to explicitly export that data.  General programmatic
-access has not been possible.
-
-This module aims to solve this problem, allowing robust and correct reading
-of metadata from qmake project files without requiring any changes to qmake.
+all sorts of metadata. This module facilitates the extraction of this
+metadata.
 
 =head2 HOW IT WORKS
 
 The qmake language is undefined, and there is no library form of qmake.
 This means that only qmake (the binary) can parse qmake (the language).
-Therefore, this module does not actually parse any qmake .pro files itself.
+Therefore, this module does not parse any qmake .pro files itself.
 qmake does all the parsing.
 
-Values are resolved roughly using a process like the following:
+Values are resolved using a process like the following:
 
 =over
 
@@ -768,7 +761,7 @@ run), and therefore the amount of qmake runs should be minimized.
 This is accomplished by delayed evaluation.
 
 Essentially, repeated calls to the B<test> or B<values> functions
-may not result in any qmake runs, until one of the values returned
+will not result in any qmake runs, until one of the values returned
 by these functions is actually used.  This is accomplished by
 returning blessed values with overloaded conversions.
 
@@ -783,7 +776,7 @@ For example, consider this code:
 There is a single qmake execution, occurring only when the values
 are used by the caller.
 
-This means that writing the code a bit differently potentially would
+This means that writing the code a bit differently would potentially
 have much worse performance:
 
   #### BAD EXAMPLE ####
@@ -923,7 +916,7 @@ file and the directory containing the Makefile.
 The module tries to ensure that all evaluations are performed after
 qmake has processed default_post.prf and CONFIG - so, for example, if a
 .pro file contains CONFIG+=debug, QMAKE_CXXFLAGS would contain (e.g.) -g,
-as expected.  However, certain strange code could break this (such as
+as expected.  However, certain code could break this (such as
 some .prf files loaded via CONFIG themselves re-ordering the CONFIG
 variable).
 
@@ -936,7 +929,7 @@ your project, then this package should also work.
 
 This module is (somewhat obviously) using qmake in a way it was not
 designed to be used.  Although it appears to work well in practice, it's
-fair to call this module one a big hack.
+fair to call this module one big hack.
 
 =head1 LICENSE AND COPYRIGHT
 
