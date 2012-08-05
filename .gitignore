@@ -11,3 +11,4 @@ cover_db
 pod2htm*.tmp
 QMake-Project-*
 MYMETA.yml
+MYMETA.json
