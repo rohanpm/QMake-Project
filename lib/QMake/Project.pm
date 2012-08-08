@@ -875,8 +875,8 @@ This is accomplished by delayed evaluation.
 
 Essentially, repeated calls to the B<test> or B<values> functions
 will not result in any qmake runs, until one of the values returned
-by these functions is actually used.  This is accomplished by
-returning blessed values with overloaded conversions.
+by these functions is used.  This is accomplished by returning
+deferred values via L<Scalar::Defer>.
 
 For example, consider this code:
 
