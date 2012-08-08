@@ -100,7 +100,7 @@ sub _qmake
 {
     my ($self) = @_;
     if (!$self->{ _qmake }) {
-        my @qmakes = qw(qmake-qt5 qmake-qt4 qmake);
+        my @qmakes = qw(qmake qmake-qt5 qmake-qt4);
         foreach my $qmake (@qmakes) {
             if (my $found = which( $qmake )) {
                 $self->{ _qmake } = $found;
