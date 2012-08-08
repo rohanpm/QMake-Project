@@ -96,19 +96,44 @@ sub make
     return $self->{ _make };
 }
 
-sub _qmake
+sub set_qmake
+{
+    my ($self, $qmake) = @_;
+
+    $self->{ _qmake } = $qmake;
+
+    return;
+}
+
+sub qmake
 {
     my ($self) = @_;
-    if (!$self->{ _qmake }) {
+
+    return $self->{ _qmake };
+}
+
+sub _find_qmake
+{
+    my ($self) = @_;
+    if (!$self->{ _found_qmake }) {
         my @qmakes = qw(qmake qmake-qt5 qmake-qt4);
         foreach my $qmake (@qmakes) {
             if (my $found = which( $qmake )) {
-                $self->{ _qmake } = $found;
+                $self->{ _found_qmake } = $found;
                 last;
             }
         }
     }
-    return $self->{ _qmake };
+    return $self->{ _found_qmake };
+}
+
+sub _qmake
+{
+    my ($self) = @_;
+    if (my $qmake = $self->qmake()) {
+        return $qmake;
+    }
+    return $self->_find_qmake();
 }
 
 # Returns a reasonable default make command based on the platform.
@@ -1003,6 +1028,14 @@ the old project file, and unsets the makefile.
 Get or set the "make" binary (with no arguments) to be used for parsing
 the makefile.  It should rarely be required to use these functions, as
 there is a reasonable default.
+
+=item B<qmake>()
+
+=item B<set_qmake>( QMAKE )
+
+Get or set the "qmake" binary (with no arguments).
+If unset (the default), the first existing 'qmake', 'qmake-qt5' or
+'qmake-qt4' command in PATH will be used.
 
 =item B<die_on_error>()
 

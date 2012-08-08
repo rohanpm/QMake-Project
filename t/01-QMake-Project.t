@@ -379,6 +379,33 @@ sub test_make_error
     return;
 }
 
+sub test_set_qmake
+{
+    my ($proj) = @_;
+    my $dir = "$TESTDATA/01-typical";
+    local $CWD = $dir;
+
+    if ($proj) {
+        $proj->set_project_file( '.' );
+    } else {
+        $proj = QMake::Project->new( '.' );
+    }
+
+    $proj->set_qmake( 'quux-is-not-a-valid-command' );
+    $proj->set_die_on_error( 1 );
+    throws_ok {
+        my $target = q{}.$proj->values( 'TARGET' );
+    } qr{\AQMake::Project: .*quux-is-not-a-valid-command};
+
+    $proj->set_qmake( find_qmake() );
+    is( $proj->values( 'TARGET' ), 'myapp' );
+
+    $proj->set_qmake( );
+    is( $proj->values( 'TARGET' ), 'myapp' );
+
+    return;
+}
+
 sub run_test
 {
     unless ($QMAKE) {
@@ -394,6 +421,7 @@ sub run_test
     test_directory_resolution;
     test_error;
     test_make_error;
+    test_set_qmake;
 
     # Now do them all again using a single object
     my $proj = QMake::Project->new( );
@@ -405,6 +433,7 @@ sub run_test
     test_ordering( $proj );
     test_error( $proj );
     test_make_error( $proj );
+    test_set_qmake( $proj );
 
     return;
 }
