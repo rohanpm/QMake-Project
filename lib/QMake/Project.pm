@@ -780,7 +780,7 @@ QMake::Project - evaluate qmake project files
 
   use QMake::Project;
 
-  # Load a project from a qmake-generated Makefile
+  # Load a project from a .pro file
   my $prj = QMake::Project->new( 'test.pro' );
 
   # Perform arbitrary tests; may be anything usable from a qmake scope
