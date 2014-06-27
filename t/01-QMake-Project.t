@@ -17,14 +17,13 @@ use English qw(-no_match_vars);
 use File::Spec::Functions;
 use File::Which;
 use File::chdir;
-use Readonly;
 use Test::Exception;
 use Test::More;
 use Test::Warn;
 
-Readonly my $TESTDATA => catfile( $FindBin::Bin, 'test_projects' );
-Readonly my $QMAKE => find_qmake( );
-Readonly my $ERROR_RE => qr/^QMake::Project:/;
+my $TESTDATA = catfile( $FindBin::Bin, 'test_projects' );
+my $QMAKE = find_qmake( );
+my $ERROR_RE = qr/^QMake::Project:/;
 
 sub run_qmake
 {

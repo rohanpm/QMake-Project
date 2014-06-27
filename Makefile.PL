@@ -22,7 +22,6 @@ WriteMakefile(
         'File::chdir' => 0,
         'IO::File' => 0,
         'List::MoreUtils' => 0,
-        'Readonly' => 0,
         'ReleaseAction' => 0,
         'Scalar::Defer' => 0,
         'Test::Exception' => 0,
