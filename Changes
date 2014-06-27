@@ -1,5 +1,9 @@
 Revision history for QMake-Project
 
+0.85    2014-06-27
+
+  - Removed Readonly module as a dependency
+
 0.84    2012-08-08
 
   - New API, set_qmake() and qmake(); explicitly set qmake
